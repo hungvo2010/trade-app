@@ -1,4 +1,4 @@
-package entities;
+package com.trade.pricing.entities;
 
 import jakarta.persistence.*;
 @Entity

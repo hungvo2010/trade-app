@@ -1,7 +1,8 @@
-package controllers;
+package com.trade.pricing;
 
-import entities.User;
-import repositories.UserRepository;
+import com.trade.pricing.entities.User;
+import org.springframework.web.bind.annotation.*;
+import com.trade.pricing.repositories.UserRepository;
 
 import java.util.List;
 

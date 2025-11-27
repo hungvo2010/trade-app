@@ -2,9 +2,9 @@ name: Build
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ com.trade.pricing.main, master ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ com.trade.pricing.main, master ]
 
 jobs:
   build:
