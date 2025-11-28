@@ -94,6 +94,59 @@ GET /api/trades/history/{userId}
 - Include rate limiting and authentication (OAuth2/JWT)
 - Support more trading pairs and exchanges
 
+## System Design Overview
+
+### Architecture Layers
+
+**1. cron-pricing module (Data Collection)**
+- Quartz scheduler fetches prices every 10s from Binance & Huobi
+- Aggregates best bid/ask across exchanges
+- Persists to database
+
+**2. trading-base module (Shared Domain)**
+- Entities: BestPrice, User, Wallet, Trade, WalletBalance
+- Repositories
+- Common DTOs
+
+**3. trading-core module (Business Logic & APIs)**
+- REST APIs for price retrieval, trading, wallet, history
+- Trading service with validation
+- Wallet management
+
+### Database Schema
+
+**best_prices**
+- id, symbol, best_bid_price, best_ask_price, bid_source, ask_source, created_at, updated_at
+
+**users**
+- id, username, email, created_at
+
+**wallets**
+- id, user_id, symbol, balance, locked_balance, updated_at
+
+**trades**
+- id, user_id, symbol, trade_type (BUY/SELL), quantity, price, total_amount, status, created_at
+
+**trade_history**
+- Audit log of all trades
+
+### Key Design Decisions
+
+1. **Best Price Aggregation**: Compare bid/ask across exchanges, store highest bid (best for selling) and lowest ask (best for buying)
+
+2. **Wallet Structure**: Separate balance and locked_balance for pending orders
+
+3. **Trading Flow**: 
+   - Validate user has sufficient balance (crypto for SELL, fiat for BUY)
+   - Lock funds during trade
+   - Execute at best aggregated price
+   - Update wallet balances
+   - Record trade history
+
+4. **No External Integration**: Simulate trade execution internally
+
+5. **Symbols**: Support multiple trading pairs (BTCUSDT, ETHBTC, etc.)
+
 ## Project Structure
 
 ```
