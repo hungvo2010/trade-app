@@ -42,58 +42,77 @@ public class PriceAggregationService {
     }
 
     private PriceSnapshot aggregateBestPrice(String symbol) {
-        BigDecimal bestBid = null;
-        BigDecimal bestAsk = null;
-        String bidExchange = null;
-        String askExchange = null;
+        BestPriceHolder bestPrices = new BestPriceHolder();
 
         for (PricingAPIService service : pricingServices) {
             try {
-                List<SymbolPrice> prices = service.getPrice(List.of(symbol));
-                if (prices.isEmpty()) continue;
-
-                String exchangeName = service.getExchangeName();
-                
-                SymbolPrice matchingPrice = prices.stream()
-                    .filter(p -> p.getSymbol() != null && p.getSymbol().equalsIgnoreCase(symbol))
-                    .findFirst()
-                    .orElse(null);
-
-                if (matchingPrice == null) {
-                    logger.warn("Symbol {} not found in response from {}", symbol, exchangeName);
-                    continue;
-                }
-
-                if (matchingPrice.getBidPrice() != null) {
-                    if (bestBid == null || matchingPrice.getBidPrice().compareTo(bestBid) > 0) {
-                        bestBid = matchingPrice.getBidPrice();
-                        bidExchange = exchangeName;
-                    }
-                }
-
-                if (matchingPrice.getAskPrice() != null) {
-                    if (bestAsk == null || matchingPrice.getAskPrice().compareTo(bestAsk) < 0) {
-                        bestAsk = matchingPrice.getAskPrice();
-                        askExchange = exchangeName;
-                    }
+                SymbolPrice price = fetchPriceFromService(service, symbol);
+                if (price != null) {
+                    updateBestPrices(bestPrices, price, service.getExchangeName());
                 }
             } catch (Exception e) {
                 logger.warn("Failed to fetch price from service: {}", service.getClass().getSimpleName(), e);
             }
         }
 
-        if (bestBid == null || bestAsk == null) {
+        return buildPriceSnapshot(symbol, bestPrices);
+    }
+
+    private SymbolPrice fetchPriceFromService(PricingAPIService service, String symbol) {
+        List<SymbolPrice> prices = service.getPrice(List.of(symbol));
+        if (prices.isEmpty()) {
+            return null;
+        }
+
+        SymbolPrice matchingPrice = prices.stream()
+            .filter(p -> p.getSymbol() != null && p.getSymbol().equalsIgnoreCase(symbol))
+            .findFirst()
+            .orElse(null);
+
+        if (matchingPrice == null) {
+            logger.warn("Symbol {} not found in response from {}", symbol, service.getExchangeName());
+        }
+
+        return matchingPrice;
+    }
+
+    private void updateBestPrices(BestPriceHolder holder, SymbolPrice price, String exchangeName) {
+        if (price.getBidPrice() != null) {
+            if (holder.bestBid == null || price.getBidPrice().compareTo(holder.bestBid) > 0) {
+                holder.bestBid = price.getBidPrice();
+                holder.bidExchange = exchangeName;
+            }
+        }
+
+        if (price.getAskPrice() != null) {
+            if (holder.bestAsk == null || price.getAskPrice().compareTo(holder.bestAsk) < 0) {
+                holder.bestAsk = price.getAskPrice();
+                holder.askExchange = exchangeName;
+            }
+        }
+    }
+
+    private PriceSnapshot buildPriceSnapshot(String symbol, BestPriceHolder holder) {
+        if (holder.bestBid == null || holder.bestAsk == null) {
             logger.warn("Could not aggregate complete price for symbol: {}", symbol);
             return null;
         }
 
         PriceSnapshot priceSnapshot = new PriceSnapshot();
         priceSnapshot.setSymbol(symbol);
-        priceSnapshot.setBidPrice(bestBid);
-        priceSnapshot.setAskPrice(bestAsk);
-        priceSnapshot.setBidExchange(bidExchange);
-        priceSnapshot.setAskExchange(askExchange);
+        priceSnapshot.setBidPrice(holder.bestBid);
+        priceSnapshot.setAskPrice(holder.bestAsk);
+        priceSnapshot.setBidExchange(holder.bidExchange);
+        priceSnapshot.setAskExchange(holder.askExchange);
         
         return priceSnapshot;
     }
+
+    private static class BestPriceHolder {
+        BigDecimal bestBid;
+        BigDecimal bestAsk;
+        String bidExchange;
+        String askExchange;
+    }
+
 }

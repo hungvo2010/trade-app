@@ -38,53 +38,59 @@ public class TradingService {
     public TradeResponse executeTrade(TradeRequest request) {
         logger.info("Executing trade: {}", request);
         
-        PriceSnapshot latestPrice = priceSnapshotRepository
-            .findTopBySymbolOrderByCapturedAtDesc(request.getSymbol().toLowerCase())
-            .orElseThrow(() -> new PriceNotFoundException("No price data available for " + request.getSymbol()));
-
-        BigDecimal executedPrice;
-        String exchange;
+        PriceSnapshot latestPrice = getLatestPrice(request.getSymbol());
         String baseCurrency = extractBaseCurrency(request.getSymbol());
         String quoteCurrency = extractQuoteCurrency(request.getSymbol());
 
         if ("BUY".equalsIgnoreCase(request.getSide())) {
-            executedPrice = latestPrice.getAskPrice();
-            exchange = latestPrice.getAskExchange();
-            
-            BigDecimal totalCost = executedPrice.multiply(request.getQuantity());
-            
-            BigDecimal quoteBalance = walletService.getBalance(request.getUserId(), quoteCurrency);
-            if (quoteBalance.compareTo(totalCost) < 0) {
-                throw new InsufficientBalanceException(
-                    String.format("Insufficient %s balance. Required: %s, Available: %s", 
-                        quoteCurrency, totalCost, quoteBalance));
-            }
-            
-            walletService.updateBalance(request.getUserId(), quoteCurrency, totalCost.negate());
-            walletService.updateBalance(request.getUserId(), baseCurrency, request.getQuantity());
-            
-            return saveTradeTransaction(request, executedPrice, totalCost, exchange);
-            
+            return executeBuyTrade(request, latestPrice, baseCurrency, quoteCurrency);
         } else if ("SELL".equalsIgnoreCase(request.getSide())) {
-            executedPrice = latestPrice.getBidPrice();
-            exchange = latestPrice.getBidExchange();
-            
-            BigDecimal baseBalance = walletService.getBalance(request.getUserId(), baseCurrency);
-            if (baseBalance.compareTo(request.getQuantity()) < 0) {
-                throw new InsufficientBalanceException(
-                    String.format("Insufficient %s balance. Required: %s, Available: %s", 
-                        baseCurrency, request.getQuantity(), baseBalance));
-            }
-            
-            BigDecimal totalCost = executedPrice.multiply(request.getQuantity());
-            
-            walletService.updateBalance(request.getUserId(), baseCurrency, request.getQuantity().negate());
-            walletService.updateBalance(request.getUserId(), quoteCurrency, totalCost);
-            
-            return saveTradeTransaction(request, executedPrice, totalCost, exchange);
-            
+            return executeSellTrade(request, latestPrice, baseCurrency, quoteCurrency);
         } else {
             throw new InvalidTradeException("Invalid trade side: " + request.getSide() + ". Must be BUY or SELL");
+        }
+    }
+
+    private PriceSnapshot getLatestPrice(String symbol) {
+        return priceSnapshotRepository
+            .findTopBySymbolOrderByCapturedAtDesc(symbol.toLowerCase())
+            .orElseThrow(() -> new PriceNotFoundException("No price data available for " + symbol));
+    }
+
+    private TradeResponse executeBuyTrade(TradeRequest request, PriceSnapshot latestPrice, 
+                                         String baseCurrency, String quoteCurrency) {
+        BigDecimal executedPrice = latestPrice.getAskPrice();
+        String exchange = latestPrice.getAskExchange();
+        BigDecimal totalCost = executedPrice.multiply(request.getQuantity());
+        
+        validateSufficientBalance(request.getUserId(), quoteCurrency, totalCost);
+        
+        walletService.updateBalance(request.getUserId(), quoteCurrency, totalCost.negate());
+        walletService.updateBalance(request.getUserId(), baseCurrency, request.getQuantity());
+        
+        return saveTradeTransaction(request, executedPrice, totalCost, exchange);
+    }
+
+    private TradeResponse executeSellTrade(TradeRequest request, PriceSnapshot latestPrice,
+                                          String baseCurrency, String quoteCurrency) {
+        BigDecimal executedPrice = latestPrice.getBidPrice();
+        String exchange = latestPrice.getBidExchange();
+        BigDecimal totalCost = executedPrice.multiply(request.getQuantity());
+        
+        validateSufficientBalance(request.getUserId(), baseCurrency, request.getQuantity());
+        
+        walletService.updateBalance(request.getUserId(), baseCurrency, request.getQuantity().negate());
+        walletService.updateBalance(request.getUserId(), quoteCurrency, totalCost);
+        
+        return saveTradeTransaction(request, executedPrice, totalCost, exchange);
+    }
+
+    private void validateSufficientBalance(Long userId, String currency, BigDecimal required) {
+        BigDecimal available = walletService.getBalance(userId, currency);
+        if (available.compareTo(required) < 0) {
+            throw new InsufficientBalanceException(
+                String.format("Insufficient %s balance. Required: %s, Available: %s", 
+                    currency, required, available));
         }
     }
 
