@@ -52,7 +52,7 @@ public class PriceAggregationService {
                 List<SymbolPrice> prices = service.getPrice(List.of(symbol));
                 if (prices.isEmpty()) continue;
 
-                String exchangeName = service.getClass().getSimpleName().replace("APIImpl", "").toUpperCase();
+                String exchangeName = service.getExchangeName();
                 
                 SymbolPrice matchingPrice = prices.stream()
                     .filter(p -> p.getSymbol() != null && p.getSymbol().equalsIgnoreCase(symbol))

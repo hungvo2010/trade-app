@@ -21,12 +21,4 @@ public class PriceController {
     public ResponseEntity<LatestPriceResponse> getLatestPrice(@RequestParam String symbol) {
         return ResponseEntity.ok(priceService.getLatestPrice(symbol));
     }
-
-    @GetMapping("/history")
-    public ResponseEntity<Page<LatestPriceResponse>> getPriceHistory(
-            @RequestParam String symbol,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(priceService.getPriceHistory(symbol, PageRequest.of(page, size)));
-    }
 }

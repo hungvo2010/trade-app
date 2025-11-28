@@ -1,4 +1,4 @@
-package com.trade.pricing.dto.responses;
+package com.trade.pricing.dto.responses.binance;
 
 
 import com.fasterxml.jackson.core.JsonParser;

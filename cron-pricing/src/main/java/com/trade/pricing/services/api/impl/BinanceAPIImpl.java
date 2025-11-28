@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.trade.pricing.mapper.PriceMapper;
 import com.trade.pricing.model.SymbolPrice;
 import com.trade.pricing.services.api.PricingAPIService;
-import com.trade.pricing.dto.responses.BinanceSingleResponse;
+import com.trade.pricing.dto.responses.binance.BinanceSingleResponse;
 import com.trade.pricing.exceptions.APIExceptions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -21,6 +21,7 @@ public class BinanceAPIImpl implements PricingAPIService {
     private static final Logger logger = LoggerFactory.getLogger(BinanceAPIImpl.class);
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
+    private static final String EXCHANGE_NAME = "BINANCE";
 
     private String baseUrl = "";
     private String apiVersion;
@@ -70,6 +71,11 @@ public class BinanceAPIImpl implements PricingAPIService {
                 .timeout(REQUEST_TIMEOUT)
                 .GET()
                 .build();
+    }
+
+    @Override
+    public String getExchangeName() {
+        return EXCHANGE_NAME;
     }
 
     public static void main(String[] args) {

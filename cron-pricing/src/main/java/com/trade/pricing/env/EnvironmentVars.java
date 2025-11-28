@@ -1,4 +1,4 @@
-package com.trade.pricing.services.api;
+package com.trade.pricing.env;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

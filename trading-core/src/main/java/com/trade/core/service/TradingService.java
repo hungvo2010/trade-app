@@ -2,6 +2,9 @@ package com.trade.core.service;
 
 import com.trade.core.dto.TradeRequest;
 import com.trade.core.dto.TradeResponse;
+import com.trade.core.exception.InsufficientBalanceException;
+import com.trade.core.exception.InvalidTradeException;
+import com.trade.core.exception.PriceNotFoundException;
 import com.trade.core.repository.PriceSnapshotRepository;
 import com.trade.core.repository.TradeTransactionRepository;
 import com.trade.pricing.entity.PriceSnapshot;
@@ -14,12 +17,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 @Service
 public class TradingService {
     private static final Logger logger = LoggerFactory.getLogger(TradingService.class);
-    private static final BigDecimal FEE_RATE = new BigDecimal("0.001");
     
     private final TradeTransactionRepository tradeTransactionRepository;
     private final PriceSnapshotRepository priceSnapshotRepository;
@@ -39,7 +40,7 @@ public class TradingService {
         
         PriceSnapshot latestPrice = priceSnapshotRepository
             .findTopBySymbolOrderByCapturedAtDesc(request.getSymbol().toLowerCase())
-            .orElseThrow(() -> new RuntimeException("No price data available for " + request.getSymbol()));
+            .orElseThrow(() -> new PriceNotFoundException("No price data available for " + request.getSymbol()));
 
         BigDecimal executedPrice;
         String exchange;
@@ -51,18 +52,18 @@ public class TradingService {
             exchange = latestPrice.getAskExchange();
             
             BigDecimal totalCost = executedPrice.multiply(request.getQuantity());
-            BigDecimal feeAmount = totalCost.multiply(FEE_RATE).setScale(8, RoundingMode.HALF_UP);
-            BigDecimal netAmount = totalCost.add(feeAmount);
             
             BigDecimal quoteBalance = walletService.getBalance(request.getUserId(), quoteCurrency);
-            if (quoteBalance.compareTo(netAmount) < 0) {
-                throw new RuntimeException("Insufficient " + quoteCurrency + " balance");
+            if (quoteBalance.compareTo(totalCost) < 0) {
+                throw new InsufficientBalanceException(
+                    String.format("Insufficient %s balance. Required: %s, Available: %s", 
+                        quoteCurrency, totalCost, quoteBalance));
             }
             
-            walletService.updateBalance(request.getUserId(), quoteCurrency, netAmount.negate());
+            walletService.updateBalance(request.getUserId(), quoteCurrency, totalCost.negate());
             walletService.updateBalance(request.getUserId(), baseCurrency, request.getQuantity());
             
-            return saveTradeTransaction(request, executedPrice, totalCost, feeAmount, netAmount, exchange);
+            return saveTradeTransaction(request, executedPrice, totalCost, exchange);
             
         } else if ("SELL".equalsIgnoreCase(request.getSide())) {
             executedPrice = latestPrice.getBidPrice();
@@ -70,26 +71,25 @@ public class TradingService {
             
             BigDecimal baseBalance = walletService.getBalance(request.getUserId(), baseCurrency);
             if (baseBalance.compareTo(request.getQuantity()) < 0) {
-                throw new RuntimeException("Insufficient " + baseCurrency + " balance");
+                throw new InsufficientBalanceException(
+                    String.format("Insufficient %s balance. Required: %s, Available: %s", 
+                        baseCurrency, request.getQuantity(), baseBalance));
             }
             
             BigDecimal totalCost = executedPrice.multiply(request.getQuantity());
-            BigDecimal feeAmount = totalCost.multiply(FEE_RATE).setScale(8, RoundingMode.HALF_UP);
-            BigDecimal netAmount = totalCost.subtract(feeAmount);
             
             walletService.updateBalance(request.getUserId(), baseCurrency, request.getQuantity().negate());
-            walletService.updateBalance(request.getUserId(), quoteCurrency, netAmount);
+            walletService.updateBalance(request.getUserId(), quoteCurrency, totalCost);
             
-            return saveTradeTransaction(request, executedPrice, totalCost, feeAmount, netAmount, exchange);
+            return saveTradeTransaction(request, executedPrice, totalCost, exchange);
             
         } else {
-            throw new RuntimeException("Invalid trade side: " + request.getSide());
+            throw new InvalidTradeException("Invalid trade side: " + request.getSide() + ". Must be BUY or SELL");
         }
     }
 
     private TradeResponse saveTradeTransaction(TradeRequest request, BigDecimal executedPrice,
-                                                  BigDecimal totalCost, BigDecimal feeAmount,
-                                                  BigDecimal netAmount, String exchange) {
+                                                  BigDecimal totalCost, String exchange) {
         TradeTransaction transaction = new TradeTransaction();
         transaction.setUserId(request.getUserId());
         transaction.setSymbol(request.getSymbol());
@@ -97,8 +97,8 @@ public class TradingService {
         transaction.setQuantity(request.getQuantity());
         transaction.setExecutedPrice(executedPrice);
         transaction.setTotalCost(totalCost);
-        transaction.setFeeAmount(feeAmount);
-        transaction.setNetAmount(netAmount);
+        transaction.setFeeAmount(BigDecimal.ZERO);
+        transaction.setNetAmount(totalCost);
         transaction.setAggregatedFrom(exchange);
         
         TradeTransaction saved = tradeTransactionRepository.save(transaction);

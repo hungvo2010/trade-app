@@ -1,9 +1,9 @@
 package com.trade.pricing.mapper;
 
 import com.trade.pricing.model.SymbolPrice;
-import com.trade.pricing.dto.responses.BinanceResponse;
-import com.trade.pricing.dto.responses.BinanceSingleResponse;
-import com.trade.pricing.dto.responses.HuobiSingleResponse;
+import com.trade.pricing.dto.responses.binance.BinanceResponse;
+import com.trade.pricing.dto.responses.binance.BinanceSingleResponse;
+import com.trade.pricing.dto.responses.huobi.HuobiSingleResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;

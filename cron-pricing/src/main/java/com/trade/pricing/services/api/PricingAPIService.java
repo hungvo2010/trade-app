@@ -6,4 +6,6 @@ import java.util.List;
 
 public interface PricingAPIService {
     List<SymbolPrice> getPrice(List<String> symbols);
+    
+    String getExchangeName();
 }

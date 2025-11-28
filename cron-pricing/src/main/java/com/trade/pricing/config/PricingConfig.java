@@ -1,6 +1,6 @@
 package com.trade.pricing.config;
 
-import com.trade.pricing.services.api.EnvironmentVars;
+import com.trade.pricing.env.EnvironmentVars;
 import com.trade.pricing.services.api.PricingAPIService;
 import com.trade.pricing.services.api.impl.BinanceAPIImpl;
 import com.trade.pricing.services.api.impl.HoubiAPIImpl;

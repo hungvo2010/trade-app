@@ -1,4 +1,4 @@
-package com.trade.pricing.dto.responses;
+package com.trade.pricing.dto.responses.huobi;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;

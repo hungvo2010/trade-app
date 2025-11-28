@@ -1,7 +1,7 @@
 package com.trade.pricing.services.api.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.trade.pricing.dto.responses.HuobiResponse;
+import com.trade.pricing.dto.responses.huobi.HuobiResponse;
 import com.trade.pricing.exceptions.APIExceptions;
 import com.trade.pricing.mapper.PriceMapper;
 import com.trade.pricing.model.SymbolPrice;
@@ -20,6 +20,7 @@ public class HoubiAPIImpl implements PricingAPIService {
     private static final Logger logger = LoggerFactory.getLogger(HoubiAPIImpl.class);
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
+    private static final String EXCHANGE_NAME = "HUOBI";
 
     private String baseUrl = "";
     private String priceEndpoint;
@@ -65,6 +66,11 @@ public class HoubiAPIImpl implements PricingAPIService {
                 .timeout(REQUEST_TIMEOUT)
                 .GET()
                 .build();
+    }
+
+    @Override
+    public String getExchangeName() {
+        return EXCHANGE_NAME;
     }
 
     public static void main(String[] args) {
