@@ -1,12 +1,12 @@
 package com.trade.pricing.services.api.impl;
 
-import tools.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.trade.pricing.mapper.PriceMapper;
 import com.trade.pricing.model.SymbolPrice;
 import com.trade.pricing.services.api.PricingAPIService;
 import com.trade.pricing.dto.responses.BinanceSingleResponse;
 import com.trade.pricing.exceptions.APIExceptions;
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +49,7 @@ public class BinanceAPIImpl implements PricingAPIService {
         logger.debug("Received response with status: {}", httpResponse.statusCode());
         var priceResponse = buildPriceResponse(httpResponse.body());
         var interestedSymbols = priceResponse.stream()
-                .filter(resp -> symbol.contains(resp.getSymbol()))
+                .filter(resp -> symbol.stream().anyMatch(resp.getSymbol()::equalsIgnoreCase))
                 .toList();
         logger.info("Successfully fetched {} prices", interestedSymbols.size());
         return PriceMapper.INSTANCE.toMultipleSymbolPrice(interestedSymbols);

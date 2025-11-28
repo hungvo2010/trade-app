@@ -1,11 +1,11 @@
 package com.trade.pricing.services.api.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.trade.pricing.dto.responses.HuobiResponse;
+import com.trade.pricing.exceptions.APIExceptions;
 import com.trade.pricing.mapper.PriceMapper;
 import com.trade.pricing.model.SymbolPrice;
 import com.trade.pricing.services.api.PricingAPIService;
-import com.trade.pricing.dto.responses.HuobiResponse;
-import com.trade.pricing.exceptions.APIExceptions;
-import tools.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,8 +45,7 @@ public class HoubiAPIImpl implements PricingAPIService {
         logger.debug("Received response with status: {}", httpResponse.statusCode());
         var priceResponse = buildPriceResponse(httpResponse.body());
         var interestedSymbols = priceResponse.getData().stream()
-                .filter(resp -> symbols.contains(resp.getSymbol()))
-                .toList();
+                .filter(resp -> symbols.stream().anyMatch(resp.getSymbol()::equalsIgnoreCase)).toList();
         logger.info("Successfully fetched {} prices", interestedSymbols.size());
         return PriceMapper.INSTANCE.toMultipleSymbolPriceHuobi(interestedSymbols);
     }

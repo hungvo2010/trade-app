@@ -38,3 +38,9 @@ bin/
 ### Mac OS ###
 .DS_Store
 /.idea/
+
+### H2 Database ###
+/data/
+*.db
+*.trace.db
+*.lock.db
