@@ -18,13 +18,16 @@ spring:
       enabled: true
       path: /h2-console
 
-binance:
-  base:
-      url: https://api.binance.com/api
-      version: v3
-  price:
-        endpoint: ticker/price
+pricing:
+  binance:
+    base-url: https://api.binance.com/
+    api-version: api/v3/
+    price-endpoint: ticker/bookTicker
+  huobi:
+    base-url: https://api.huobi.pro/
+    price-endpoint: market/tickers
 
 logging:
   level:
     org.hibernate.SQL: DEBUG
+    com.trade.pricing: INFO

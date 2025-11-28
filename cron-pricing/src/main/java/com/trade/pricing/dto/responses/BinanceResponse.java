@@ -8,12 +8,14 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.io.IOException;
 import java.util.List;
 
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @JsonDeserialize(using = BinanceResponse.BinanceResponseDeserializer.class)
 public class BinanceResponse {

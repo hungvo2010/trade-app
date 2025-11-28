@@ -1,12 +1,26 @@
 package com.trade.pricing.services.api;
 
-import org.springframework.beans.factory.annotation.Value;
+import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
+@Component
+@ConfigurationProperties(prefix = "pricing")
+@Data
 public class EnvironmentVars {
-    @Value("${binance.base.url}")
-    private String baseUrl = "";
-    @Value("${binance.base.version}")
-    private String apiVersion;
-    @Value("${binance.price.endpoint}")
-    private String priceEndpoint;
+    private BinanceConfig binance;
+    private HuobiConfig huobi;
+
+    @Data
+    public static class BinanceConfig {
+        private String baseUrl;
+        private String apiVersion;
+        private String priceEndpoint;
+    }
+
+    @Data
+    public static class HuobiConfig {
+        private String baseUrl;
+        private String priceEndpoint;
+    }
 }
